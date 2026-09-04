@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>KnowSphere AI — Prototype</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #2a2e38;
+    --accent: #5b8def;
+    --text: #e6e8ec;
+    --muted: #8b909c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+  }
+  .sidebar {
+    width: 260px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .logo { font-size: 20px; font-weight: 700; }
+  .logo span { color: var(--accent); }
+  select, button, input {
+    background: #1e222b;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  button { cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  .nav-btn { text-align: left; background: transparent; border: none; padding: 10px; border-radius: 6px; }
+  .nav-btn.active, .nav-btn:hover { background: #1e222b; }
+  .user-badge { font-size: 12px; color: var(--muted); margin-top: auto; }
+
+  .main { flex: 1; display: flex; flex-direction: column; padding: 24px; overflow: hidden; }
+  .view { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+  .view.active { display: flex; }
+  h2 { margin-top: 0; }
+
+  /* Chat view */
+  #chat-log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 8px 0; }
+  .msg { max-width: 70%; padding: 12px 14px; border-radius: 10px; line-height: 1.4; }
+  .msg.user { align-self: flex-end; background: var(--accent); color: white; }
+  .msg.bot { align-self: flex-start; background: var(--panel); border: 1px solid var(--border); white-space: pre-wrap; }
+  .chat-input-row { display: flex; gap: 8px; margin-top: 12px; }
+  .chat-input-row input { flex: 1; }
+  .loading { color: var(--muted); font-style: italic; }
+
+  /* Graph view */
+  #graph-svg { flex: 1; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
+  .node-label { fill: var(--text); font-size: 11px; }
+  .legend { display: flex; gap: 16px; margin-top: 10px; font-size: 12px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">Know<span>Sphere</span></div>
+
+  <label style="font-size:12px;color:var(--muted)">Demo user</label>
+  <select id="user-select">
+    <option value="sarah@novatech.demo" selected>Sarah Chen (Admin — sees all)</option>
+    <option value="viewer@novatech.demo">Restricted Viewer (Mercury only)</option>
+  </select>
+
+  <button class="nav-btn active" data-view="chat-view">💬 Chat</button>
+  <button class="nav-btn" data-view="graph-view">🕸 Knowledge Graph</button>
+
+  <div class="user-badge" id="user-badge">Logged in as Sarah Chen</div>
+</div>
+
+<div class="main">
+
+  <div id="chat-view" class="view active">
+    <h2>Ask KnowSphere</h2>
+    <div id="chat-log"></div>
+    <div class="chat-input-row">
+      <input id="chat-input" type="text" placeholder="e.g. Why was PostgreSQL selected for Project Alpha?" />
+      <button id="chat-send">Ask</button>
+    </div>
+  </div>
+
+  <div id="graph-view" class="view">
+    <h2>Knowledge Graph</h2>
+    <svg id="graph-svg" viewBox="0 0 800 500"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:#5b8def"></i> Person</span>
+      <span><i class="dot" style="background:#3ecf8e"></i> Project</span>
+      <span><i class="dot" style="background:#f2b84b"></i> Technology</span>
+      <span><i class="dot" style="background:#e06c75"></i> Decision</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = "http://localhost:8000";
+
+// ---- nav ----
+document.querySelectorAll(".nav-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.view).classList.add("active");
+    if (btn.dataset.view === "graph-view") loadGraph();
+  });
+});
+
+document.getElementById("user-select").addEventListener("change", (e) => {
+  const label = e.target.selectedOptions[0].textContent;
+  document.getElementById("user-badge").textContent = "Logged in as " + label;
+});
+
+// ---- chat ----
+const chatLog = document.getElementById("chat-log");
+const chatInput = document.getElementById("chat-input");
+
+function addMessage(text, role) {
+  const div = document.createElement("div");
+  div.className = "msg " + role;
+  div.textContent = text;
+  chatLog.appendChild(div);
+  chatLog.scrollTop = chatLog.scrollHeight;
+  return div;
+}
+
+async function sendMessage() {
+  const question = chatInput.value.trim();
+  if (!question) return;
+  addMessage(question, "user");
+  chatInput.value = "";
+
+  const loadingMsg = addMessage("Thinking...", "bot");
+  loadingMsg.classList.add("loading");
+
+  const userEmail = document.getElementById("user-select").value;
+
+  try {
+    const res = await fetch(API + "/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, user_email: userEmail })
+    });
+    const data = await res.json();
+    loadingMsg.textContent = data.answer || "No answer returned.";
+    loadingMsg.classList.remove("loading");
+  } catch (err) {
+    loadingMsg.textContent = "Error reaching KnowSphere API — is the backend running on port 8000?";
+    loadingMsg.classList.remove("loading");
+  }
+}
+
+document.getElementById("chat-send").addEventListener("click", sendMessage);
+chatInput.addEventListener("keydown", (e) => { if (e.key === "Enter") sendMessage(); });
+
+// ---- graph (simple force-ish static layout, no external libs) ----
+let graphLoaded = false;
+const typeColors = { Person: "#5b8def", Project: "#3ecf8e", Technology: "#f2b84b", Decision: "#e06c75" };
+
+async function loadGraph() {
+  if (graphLoaded) return;
+  graphLoaded = true;
+  const res = await fetch(API + "/graph");
+  const graph = await res.json();
+
+  const svg = document.getElementById("graph-svg");
+  const W = 800, H = 500;
+  const cx = W / 2, cy = H / 2, R = 190;
+
+  // simple circular layout
+  const positions = {};
+  graph.nodes.forEach((n, i) => {
+    const angle = (i / graph.nodes.length) * 2 * Math.PI;
+    positions[n.id] = { x: cx + R * Math.cos(angle), y: cy + R * Math.sin(angle) };
+  });
+
+  let svgContent = "";
+
+  // edges first (so nodes draw on top)
+  graph.edges.forEach(e => {
+    const a = positions[e.source], b = positions[e.target];
+    if (!a || !b) return;
+    svgContent += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#3a3f4b" stroke-width="1.5" />`;
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    svgContent += `<text x="${mx}" y="${my}" class="node-label" fill="#8b909c" font-size="9">${e.type}</text>`;
+  });
+
+  // nodes
+  graph.nodes.forEach(n => {
+    const p = positions[n.id];
+    const color = typeColors[n.type] || "#888";
+    svgContent += `<circle cx="${p.x}" cy="${p.y}" r="16" fill="${color}" />`;
+    svgContent += `<text x="${p.x}" y="${p.y + 30}" class="node-label" text-anchor="middle">${n.label}</text>`;
+  });
+
+  svg.innerHTML = svgContent;
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+GRAPH = {
+    "nodes": [
+        {"id": "sarah_chen", "label": "Sarah Chen", "type": "Person"},
+        {"id": "rahul_mehta", "label": "Rahul Mehta", "type": "Person"},
+        {"id": "priya_shah", "label": "Priya Shah", "type": "Person"},
+        {"id": "david_kumar", "label": "David Kumar", "type": "Person"},
+        {"id": "project_alpha", "label": "Project Alpha", "type": "Project"},
+        {"id": "project_mercury", "label": "Project Mercury", "type": "Project"},
+        {"id": "postgresql", "label": "PostgreSQL", "type": "Technology"},
+        {"id": "redis", "label": "Redis", "type": "Technology"},
+        {"id": "adr_001", "label": "ADR-001: Database Selection", "type": "Decision"},
+    ],
+    "edges": [
+        {"source": "rahul_mehta", "target": "project_alpha", "type": "WORKED_ON"},
+        {"source": "sarah_chen", "target": "project_alpha", "type": "WORKED_ON"},
+        {"source": "sarah_chen", "target": "project_mercury", "type": "WORKED_ON"},
+        {"source": "priya_shah", "target": "project_mercury", "type": "WORKED_ON"},
+        {"source": "david_kumar", "target": "project_alpha", "type": "WORKED_ON"},
+        {"source": "sarah_chen", "target": "adr_001", "type": "APPROVED"},
+        {"source": "adr_001", "target": "project_alpha", "type": "AFFECTS"},
+        {"source": "project_alpha", "target": "postgresql", "type": "USES_TECHNOLOGY"},
+        {"source": "project_mercury", "target": "postgresql", "type": "USES_TECHNOLOGY"},
+        {"source": "project_alpha", "target": "redis", "type": "USES_TECHNOLOGY"},
+    ],
+}

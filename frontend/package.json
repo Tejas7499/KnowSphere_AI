@@ -1,0 +1,13 @@
+{
+  "name": "final-year-project",
+  "version": "1.0.0",
+  "description": "Know-Sphere AI",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Tejas Jadhav",
+  "license": "ISC",
+  "type": "commonjs"
+}

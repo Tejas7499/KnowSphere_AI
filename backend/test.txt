@@ -1,0 +1,2 @@
+This is a test document for KnowSphere.
+It has two lines to confirm extraction works.
