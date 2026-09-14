@@ -7,7 +7,8 @@ def embed_text(text):
         json={
             "model": "nomic-embed-text",
             "prompt": text
-        }
+        },
+        timeout=60.0
     )
     
     
