@@ -1,9 +1,9 @@
 
 
-from extract import extract_text
-from chunk import chunk_text
-from embed import embed_text
-from store import store_document
+from app.extract import extract_text
+from app.chunk import chunk_text
+from app.embed import embed_text
+from app.store import store_document
 
 # filename -> (project, author) — place these .md files in backend/ (same
 # folder as adr-001.md) before running this script.

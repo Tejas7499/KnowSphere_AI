@@ -1,13 +1,21 @@
+import os
 import psycopg
 from pgvector.psycopg import register_vector
-from embed import embed_text
+from dotenv import load_dotenv
+from app.embed import embed_text
+
+load_dotenv()
 
 def retrieve_chunks(question, top_k=3):
     question_vector = embed_text(question)
     
     
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        raise ValueError("DATABASE_URL environment variable is not set.")
+
     conn = psycopg.connect(
-        "postgresql://knowsphere:knowsphere@localhost:5433/knowsphere",
+        db_url,
         autocommit=True
     )
     register_vector(conn)

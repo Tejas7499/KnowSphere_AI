@@ -1,7 +1,7 @@
 import httpx
-from retrieve import retrieve_chunks
+from app.retrieve import retrieve_chunks
 
-def answer_question(question):
+def generate_answer(question):
     retrieved_chunks = retrieve_chunks(question)
     
     evidence_text = ""
@@ -26,7 +26,7 @@ Answer concisely and mention which document the answer comes from.
             "prompt": prompt,
             "stream": False
         },
-        timeout=60.0
+        timeout=120.0,
     )
     
     answer = response.json()["response"]

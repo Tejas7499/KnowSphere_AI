@@ -5,7 +5,7 @@ KnowSphere API — thin FastAPI wrapper around the RAG core YOU built
 This file doesn't reimplement your logic — it imports and calls it.
 Run from backend/app/:  uvicorn main:app --reload --port 8000
 """
-
+import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -16,15 +16,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from pgvector.psycopg import register_vector
 from pydantic import BaseModel
 
-from extract import extract_text
-from chunk import chunk_text
-from embed import embed_text
-from store import store_document
-from retrieve import retrieve_chunks
-from generate import answer_question
-from graph_data import GRAPH
+from app.extract import extract_text
+from app.chunk import chunk_text
+from app.embed import embed_text
+from app.store import store_document
+from app.retrieve import retrieve_chunks
+from app.generate import generate_answer
+from app.graph_data import GRAPH
 
-DB_URL = "postgresql://knowsphere:knowsphere@localhost:5433/knowsphere"
+DB_URL = os.getenv("DATABASE_URL")
 
 app = FastAPI(title="KnowSphere AI — Prototype")
 
@@ -125,7 +125,7 @@ def chat(req: ChatRequest):
             allowed_projects = user["projects"]
 
     if allowed_projects is None:
-        return {"answer": answer_question(req.question)}
+        return {"answer": generate_answer(req.question)}
 
     evidence = retrieve_with_permission(req.question, allowed_projects)
     if not evidence:
@@ -147,7 +147,7 @@ Answer concisely and mention which document the answer comes from.
     response = httpx.post(
         "http://localhost:11434/api/generate",
         json={"model": "llama3.2:3b", "prompt": prompt, "stream": False},
-        timeout=60.0,
+        timeout=120.0,
     )
     return {"answer": response.json()["response"]}
 

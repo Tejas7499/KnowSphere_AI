@@ -1,10 +1,18 @@
+import os
 import psycopg
 from pgvector.psycopg import register_vector
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def store_document(filename, project, author, chunks_with_embeddings):
 
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        raise ValueError("DATABASE_URL environment variable is not set.")
+
     conn = psycopg.connect(
-        "postgresql://knowsphere:knowsphere@localhost:5433/knowsphere",
+        db_url,
         autocommit=True
     )
     register_vector(conn)
