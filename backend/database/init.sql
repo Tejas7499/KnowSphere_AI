@@ -16,3 +16,22 @@ CREATE TABLE document_chunks (
     content TEXT,
     embedding vector(768)
 );
+
+CREATE TABLE entities (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT_NULL,
+    type TEXT NOT_NULL,
+    sensitivity_level TEXT DEFAULT 'public',
+    attributes JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(name, type)
+);
+
+CREATE TABLE relationships (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    source_id UUID REFERENCES entities(id) ON DELETE CASCADE,
+    target_id UUID REFERENCES entities(id) ON DELETE CASCADE,
+    relation_type TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(source_id, target_id, relation_type)
+)
